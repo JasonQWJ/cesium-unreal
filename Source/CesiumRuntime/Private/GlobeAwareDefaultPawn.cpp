@@ -70,12 +70,12 @@ void AGlobeAwareDefaultPawn::MoveUp_World(float Val) {
 
     FVector loc = this->GetPawnViewLocation();
     glm::dvec3 locEcef =
-        this->Georeference->TransformUeToEcef(glm::dvec3(loc.X, loc.Y, loc.Z));
+        this->_geoTransforms.TransformUeToEcef(glm::dvec3(loc.X, loc.Y, loc.Z));
     glm::dvec4 upEcef(
         CesiumGeospatial::Ellipsoid::WGS84.geodeticSurfaceNormal(locEcef),
         0.0);
     glm::dvec4 up =
-        this->Georeference->GetEllipsoidCenteredToUnrealWorldTransform() *
+        this->_geoTransforms.GetEllipsoidCenteredToUnrealWorldTransform() *
         upEcef;
 
     AddMovementInput(FVector(up.x, up.y, up.z), Val);
@@ -118,11 +118,12 @@ void AGlobeAwareDefaultPawn::AddControllerRollInput(float Val) {
 FRotator AGlobeAwareDefaultPawn::GetViewRotation() const {
   FRotator localRotation = ADefaultPawn::GetViewRotation();
 
-  FMatrix enuAdjustmentMatrix =
-      this->Georeference->InaccurateComputeEastNorthUpToUnreal(
-          this->GetPawnViewLocation());
-
-  return FRotator(enuAdjustmentMatrix.ToQuat() * localRotation.Quaternion());
+  // TODO XXX Inaccurate one used here
+  // FMatrix enuAdjustmentMatrix =
+  //    this->geoTransforms->InaccurateComputeEastNorthUpToUnreal(
+  //        this->GetPawnViewLocation());
+  // return FRotator(enuAdjustmentMatrix.ToQuat() * localRotation.Quaternion());
+  return FRotator();
 }
 
 FRotator AGlobeAwareDefaultPawn::GetBaseAimRotation() const {
@@ -132,19 +133,16 @@ FRotator AGlobeAwareDefaultPawn::GetBaseAimRotation() const {
 glm::dvec3 AGlobeAwareDefaultPawn::GetECEFCameraLocation() const {
   FVector ueLocation = this->GetPawnViewLocation();
   const glm::dvec3 ueLocationVec(ueLocation.X, ueLocation.Y, ueLocation.Z);
-  if (!IsValid(this->Georeference)) {
-    return ueLocationVec;
-  }
-  return this->Georeference->TransformUeToEcef(ueLocationVec);
+
+  // TODO XXX Is this the center to use here?
+  const FIntVector ueOrigin = this->GetWorld()->OriginLocation;
+  glm::dvec3 origin = glm::dvec3(ueOrigin.X, ueOrigin.Y, ueOrigin.Z);
+
+  return this->_geoTransforms.TransformUeToEcef(origin, ueLocationVec);
 }
 
 void AGlobeAwareDefaultPawn::SetECEFCameraLocation(const glm::dvec3& ecef) {
-  glm::dvec3 ue;
-  if (!IsValid(this->Georeference)) {
-    ue = ecef;
-  } else {
-    ue = this->Georeference->TransformEcefToUe(ecef);
-  }
+  glm::dvec3 ue = Georeference->TransformEcefToUe(ecef);
   ADefaultPawn::SetActorLocation(FVector(
       static_cast<float>(ue.x),
       static_cast<float>(ue.y),
@@ -281,7 +279,7 @@ void AGlobeAwareDefaultPawn::FlyToLocationLongitudeLatitudeHeight(
     float PitchAtDestination,
     bool CanInterruptByMoving) {
 
-  glm::dvec3 ecef = this->Georeference->TransformLongitudeLatitudeHeightToEcef(
+  glm::dvec3 ecef = this->_geoTransforms.TransformLongitudeLatitudeHeightToEcef(
       LongitudeLatitudeHeightDestination);
   this->FlyToLocationECEF(
       ecef,
@@ -307,7 +305,9 @@ void AGlobeAwareDefaultPawn::InaccurateFlyToLocationLongitudeLatitudeHeight(
       CanInterruptByMoving);
 }
 
-void AGlobeAwareDefaultPawn::NotifyGeoreferenceUpdated() {
+void AGlobeAwareDefaultPawn::NotifyGeoreferenceUpdated(
+    const GeoTransforms& geoTransforms) {
+  this->_geoTransforms = geoTransforms;
   this->SetECEFCameraLocation(this->_currentEcef);
 }
 
@@ -371,6 +371,8 @@ void AGlobeAwareDefaultPawn::_handleFlightStep(float DeltaSeconds) {
 
   // Interpolate rotation - Computation has to be done at each step because
   // the ENU CRS is depending on location
+  /*
+  //==========================================================================
   FQuat currentQuat = FQuat::Slerp(
       this->Georeference
           ->TransformRotatorUeToEnu(
@@ -387,6 +389,56 @@ void AGlobeAwareDefaultPawn::_handleFlightStep(float DeltaSeconds) {
       this->Georeference->TransformRotatorEnuToUe(
           currentQuat.Rotator(),
           currentPosition));
+  //==========================================================================
+  */
+
+  /*
+  //==========================================================================
+  const glm::dvec3& ueOriginLocation =
+      VecMath::createVector3D(this->GetWorld()->OriginLocation);
+  const glm::dmat4& ueAbsToEcef =
+      this->_geoTransforms->GetUnrealWorldToEllipsoidCenteredTransform();
+  const glm::dmat4& ecefToGeoreferenced =
+      this->_geoTransforms->GetEllipsoidCenteredToGeoreferencedTransform();
+
+  glm::dquat startingQuat = glm::quat_cast(
+      UCesiumGeospatialLibrary::TransformRotatorUnrealToEastNorthUp(
+          VecMath::createRotationMatrix4D(this->_flyToSourceRotation),
+          this->_keypoints[0],
+          ueAbsToEcef,
+          ueOriginLocation,
+          ecefToGeoreferenced));
+
+  glm::dquat endingQuat = glm::quat_cast(
+      UCesiumGeospatialLibrary::TransformRotatorUnrealToEastNorthUp(
+          VecMath::createRotationMatrix4D(this->_flyToDestinationRotation),
+          this->_keypoints.back(),
+          ueAbsToEcef,
+          ueOriginLocation,
+          ecefToGeoreferenced));
+
+  const glm::dquat& currentQuat =
+      glm::slerp(startingQuat, endingQuat, flyPercentage);
+
+  GetController()->SetControlRotation(
+      this->Georeference->TransformRotatorEnuToUe(
+          VecMath::createQuaternion(currentQuat).Rotator(),
+          currentPosition));
+  //==========================================================================
+  */
+
+  //==========================================================================
+  const glm::dquat startingQuat = _geoTransforms.TransformRotatorUeToEnu(
+      VecMath::createQuaternion(this->_flyToSourceRotation),
+      this->_keypoints[0]);
+  const glm::dquat endingQuat = _geoTransforms.TransformRotatorUeToEnu(
+      VecMath::createQuaternion(this->_flyToDestinationRotation),
+      this->_keypoints.back());
+  const glm::dquat& currentQuat =
+      glm::slerp(startingQuat, endingQuat, flyPercentage);
+  GetController()->SetControlRotation(VecMath::createRotator(
+      _geoTransforms.TransformRotatorEnuToUe(currentQuat, currentPosition)));
+  //==========================================================================
 }
 
 void AGlobeAwareDefaultPawn::Tick(float DeltaSeconds) {

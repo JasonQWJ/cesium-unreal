@@ -18,7 +18,6 @@
 class CESIUMRUNTIME_API GeoTransforms {
 
 public:
-
   /**
    * @brief Creates a new instance
    */

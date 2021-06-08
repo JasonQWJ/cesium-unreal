@@ -4,6 +4,7 @@
 
 #include "Cesium3DTiles/BoundingVolume.h"
 #include "CoreMinimal.h"
+#include "GeoTransforms.h"
 #include "UObject/Interface.h"
 #include <optional>
 #include "CesiumGeoreferenceable.generated.h"
@@ -41,5 +42,6 @@ public:
    * have been updated. The new transforms can be fetched from the
    * `CesiumWorldGeoreference` actor.
    */
-  virtual void NotifyGeoreferenceUpdated() = 0;
+  virtual void
+  NotifyGeoreferenceUpdated(const GeoTransforms& geoTransforms) = 0;
 };

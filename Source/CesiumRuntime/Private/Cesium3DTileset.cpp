@@ -168,6 +168,8 @@ void ACesium3DTileset::SetOpacityMaskMaterial(UMaterialInterface* InMaterial) {
 }
 
 void ACesium3DTileset::PlayMovieSequencer() {
+  // TODO XXX Should use existing instance here, BUT this instance will be
+  // modified! Sort this out!
   ACesiumGeoreference* cesiumGeoreference =
       ACesiumGeoreference::GetDefaultForActor(this);
 
@@ -185,6 +187,8 @@ void ACesium3DTileset::PlayMovieSequencer() {
 }
 
 void ACesium3DTileset::StopMovieSequencer() {
+  // TODO XXX Should use existing instance here, BUT this instance will be
+  // modified! Sort this out!
   ACesiumGeoreference* cesiumGeoreference =
       ACesiumGeoreference::GetDefaultForActor(this);
   this->_captureMovieMode = false;
@@ -331,12 +335,14 @@ void ACesium3DTileset::UpdateTransformFromCesium(
   }
 }
 
-void ACesium3DTileset::NotifyGeoreferenceUpdated() {
+void ACesium3DTileset::NotifyGeoreferenceUpdated(
+    const GeoTransforms& geoTransforms) {
   // If the bounding volume is ready, we can update the georeference transform
   // as wanted
   if (IsBoundingVolumeReady()) {
     UCesium3DTilesetRoot* pRoot =
         Cast<UCesium3DTilesetRoot>(this->RootComponent);
+    pRoot->setGeoTransforms(geoTransforms);
     pRoot->RecalculateTransform();
   } else {
     // Otherwise, update the transform later in Tick when the bounding volume is

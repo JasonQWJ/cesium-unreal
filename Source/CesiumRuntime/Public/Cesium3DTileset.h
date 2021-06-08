@@ -450,7 +450,7 @@ public:
   virtual bool IsBoundingVolumeReady() const override;
   virtual std::optional<Cesium3DTiles::BoundingVolume>
   GetBoundingVolume() const override;
-  virtual void NotifyGeoreferenceUpdated();
+  virtual void NotifyGeoreferenceUpdated(const GeoTransforms& geoTransforms);
 
   // AActor overrides
   virtual bool ShouldTickIfViewportsOnly() const override;

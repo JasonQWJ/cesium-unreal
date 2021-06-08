@@ -179,7 +179,8 @@ public:
   virtual bool IsBoundingVolumeReady() const override;
   virtual std::optional<Cesium3DTiles::BoundingVolume>
   GetBoundingVolume() const override;
-  virtual void NotifyGeoreferenceUpdated() override;
+  virtual void
+  NotifyGeoreferenceUpdated(const GeoTransforms& geoTransforms) override;
 
 protected:
   // Called when the game starts

@@ -84,15 +84,9 @@ void UCesium3DTilesetRoot::_updateAbsoluteLocation() {
 }
 
 void UCesium3DTilesetRoot::_updateTilesetToUnrealRelativeWorldTransform() {
-  ACesium3DTileset* pTileset = this->GetOwner<ACesium3DTileset>();
-  if (!IsValid(pTileset->Georeference)) {
-    this->_tilesetToUnrealRelativeWorld = glm::dmat4(1.0);
-    this->_isDirty = true;
-    return;
-  }
 
   const glm::dmat4& ellipsoidCenteredToUnrealWorld =
-      pTileset->Georeference->GetEllipsoidCenteredToUnrealWorldTransform();
+      _geoTransforms.GetEllipsoidCenteredToUnrealWorldTransform();
 
   glm::dvec3 relativeLocation =
       this->_absoluteLocation - this->_worldOriginLocation;

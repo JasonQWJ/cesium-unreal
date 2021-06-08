@@ -40,6 +40,10 @@ public:
    * and marks it changed.
    */
   void RecalculateTransform();
+  // TODO XXX Preliminary: Called by tileset when transforms updated
+  void setGeoTransforms(const GeoTransforms& geoTransforms) {
+    this->_geoTransforms = geoTransforms;
+  }
 
   /**
    * @brief Gets the transform from the "Cesium Tileset" reference frame to the
@@ -81,7 +85,7 @@ protected:
 private:
   void _updateAbsoluteLocation();
   void _updateTilesetToUnrealRelativeWorldTransform();
-
+  GeoTransforms _geoTransforms;
   glm::dvec3 _worldOriginLocation;
   glm::dvec3 _absoluteLocation;
   glm::dmat4 _tilesetToUnrealRelativeWorld;

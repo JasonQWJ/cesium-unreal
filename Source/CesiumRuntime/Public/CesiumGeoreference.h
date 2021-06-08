@@ -4,9 +4,9 @@
 
 #include "Components/ActorComponent.h"
 #include "Containers/UnrealString.h"
-#include "GeoTransforms.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GeoTransforms.h"
 #include "UObject/WeakInterfacePtr.h"
 #include <glm/mat3x3.hpp>
 #include "CesiumGeoreference.generated.h"
@@ -566,7 +566,6 @@ protected:
 #endif
 
 private:
-
   UPROPERTY()
   double _ellipsoidRadii[3];
 

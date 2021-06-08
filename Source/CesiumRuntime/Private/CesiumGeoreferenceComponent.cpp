@@ -241,7 +241,8 @@ UCesiumGeoreferenceComponent::GetBoundingVolume() const {
   return std::nullopt;
 }
 
-void UCesiumGeoreferenceComponent::NotifyGeoreferenceUpdated() {
+void UCesiumGeoreferenceComponent::NotifyGeoreferenceUpdated(
+    const GeoTransforms& geoTransforms) {
   this->_updateActorToUnrealRelativeWorldTransform();
   this->_setTransform(this->_actorToUnrealRelativeWorld);
 }

@@ -196,7 +196,8 @@ public:
     return std::nullopt;
   }
 
-  virtual void NotifyGeoreferenceUpdated() override;
+  virtual void
+  NotifyGeoreferenceUpdated(const GeoTransforms& geoTransforms) override;
 
   virtual bool ShouldTickIfViewportsOnly() const override;
   virtual void Tick(float DeltaSeconds) override;
@@ -207,6 +208,8 @@ protected:
 
 private:
   void _interruptFlight();
+
+  GeoTransforms _geoTransforms;
 
   /**
    * @brief Advance the camera flight based on the given time delta.
